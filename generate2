@@ -1,0 +1,82 @@
+import random
+import subprocess
+import os
+
+def generate_numbers(n, m):
+    """Generate a list of n*m random numbers between 0 and 1 with one decimal place.
+    The first n numbers are non-increasing, the next n numbers are non-increasing, and so on."""
+    numbers = []
+    for _ in range(n):
+        sequence = sorted([round(random.uniform(0, 1), 1) for _ in range(m)], reverse=True)
+        numbers.extend(sequence)
+    return numbers
+
+def create_latex_table(numbers, n, m):
+    """Create a LaTeX table from the given list of numbers."""
+    latex = "\\begin{center}\n"
+    latex += "\\begin{tabular}{|" + "c|" * (m + 1) + "}\n"
+    latex += "\\hline\n"
+
+    # Add column headers
+    headers = " & " + " & ".join([str(i+1) for i in range(m)]) + " \\\\ \\hline\n"
+    latex += headers
+
+    # Add rows
+    for i in range(n):
+        row = " & ".join(map(str, numbers[i*m:(i+1)*m])) + f" \\\\ \\hline\n"
+        latex += f"$P_{{{i+1}}}$ & " + row
+
+    latex += "\\end{tabular}\n"
+    latex += "\\end{center}\n"
+    
+    return latex
+
+def create_latex_document(variants, n, m):
+    """Create a LaTeX document with multiple variants, each on a separate page."""
+    latex = "\\documentclass{article}\n"
+    latex += "\\usepackage[utf8]{inputenc}\n"
+    latex += "\\usepackage[russian]{babel}\n"
+    latex += "\\usepackage{geometry}\n"
+    latex += "\\usepackage{amsmath}\n"
+    latex += "\\usepackage{graphicx}\n"
+    latex += "\\geometry{a4paper, margin=1in}\n"
+    latex += "\\begin{document}\n"
+
+    for i, numbers in enumerate(variants):
+        latex += f"\\section*{{Вариант № {i+1}}}\n"
+        latex += f"Срочный заказ по изготовлению {m} машин необходимо разместить между {n} предприятиями. "
+        latex += f"Вероятности выполнения заказа $k$-ым предприятием равны $P_k$ (где $k$ - это индекс) зависят от величины заказа и заданы таблицей.\n"
+        latex += create_latex_table(numbers, n, m)
+        latex += f"\nНайти оптимальный план размещения заказа, при котором достигает максимум вероятность $P$ выполнения заказа всеми предприятиями.\n"
+        if i < len(variants) - 1:
+            latex += "\\newpage\n"
+
+    latex += "\\end{document}\n"
+    
+    return latex
+
+def save_latex_file(filename, content):
+    """Save the LaTeX content to a .tex file."""
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+def compile_latex_to_pdf(latex_filename):
+    """Compile a LaTeX file to PDF and handle errors."""
+    result = subprocess.run(["C:/texlive/2024/bin/windows/pdflatex.exe", latex_filename], capture_output=True, text=True)
+    if result.returncode != 0:
+        print("Error during LaTeX compilation:")
+        print(result.stderr)
+        with open("error.log", 'w') as f:
+            f.write(result.stderr)
+    else:
+        print("PDF file created successfully.")
+
+# Example usage
+n = 4  # number of rows
+m = 5  # number of columns
+M = 3  # number of variants
+
+variants = [generate_numbers(n, m) for _ in range(M)]
+latex_content = create_latex_document(variants, n, m)
+save_latex_file("table.tex", latex_content)
+compile_latex_to_pdf("table.tex")
